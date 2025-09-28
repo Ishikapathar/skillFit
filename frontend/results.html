@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Internship Recommendations</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #4f46e5, #9333ea);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-10">
+
+  <div class="text-center mb-8">
+    <h1 class="text-3xl font-bold text-white mb-4 animate-pulse">
+      Top Internship Recommendations
+    </h1>
+    
+    <!-- Navigation Links -->
+    <div class="flex justify-center space-x-4 mb-6">
+      <a href="form.html" class="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition font-medium">
+        ← Back to Form
+      </a>
+      <button id="dashboard-link" onclick="checkDashboardAccess()" 
+              class="px-6 py-2 bg-gradient-to-r from-green-500 to-teal-500 text-white rounded-lg hover:opacity-90 transition font-medium">
+        📊 My Dashboard
+      </button>
+    </div>
+  </div>
+  
+  <div id="recommendations-container" class="w-full max-w-3xl"></div>
+
+  <!-- Button to see saved internships -->
+  <button id="toggle-saved-btn"
+          class="bg-yellow-400 px-4 py-2 rounded-lg font-semibold mt-6 hover:bg-yellow-500 transition">
+    See Saved Internships
+  </button>
+
+  <!-- Saved internships container -->
+  <div id="saved-container" class="w-full max-w-3xl mb-10 mt-4 hidden"></div>
+
+  <script>
+    const container = document.getElementById("recommendations-container");
+    const savedContainer = document.getElementById("saved-container");
+    const toggleSavedBtn = document.getElementById("toggle-saved-btn");
+
+    // --- RESET saved internships when page loads ---
+    localStorage.removeItem("savedInternships");
+
+    // Get student data from localStorage
+    const studentData = JSON.parse(localStorage.getItem("studentData") || "{}");
+
+    if (!studentData.name) {
+      container.innerHTML = "<h2 class='text-white text-xl'>No student data found. Please submit the form first.</h2>";
+    } else {
+      const url = "http://127.0.0.1:8000/get_recommendations";
+
+      console.log('Sending request to:', url);
+      console.log('Student data:', studentData);
+
+      fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(studentData)
+      })
+      .then(res => {
+        console.log('Response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('Response data:', data);
+        const recs = data.recommendations || [];
+
+        if (recs.length === 0) {
+          container.innerHTML = "<h2 class='text-red-500 text-xl'>No recommendations found!</h2>";
+          return;
+        }
+
+        let savedInternships = JSON.parse(localStorage.getItem("savedInternships") || "[]");
+
+        // Render unique internships using company + internship_title + location as key
+        const seenKeys = new Set();
+        recs.forEach(r => {
+          const key = `${r.company}-${r.internship_title}-${r.location}`;
+          if (!seenKeys.has(key)) {
+            seenKeys.add(key);
+
+            const div = document.createElement("div");
+            div.className = "bg-white rounded-xl shadow-lg p-5 mb-4 transition hover:scale-105 duration-300";
+
+            const skillsHTML = (r.skills || "N/A").split(",").map(s =>
+              `<span class="inline-block bg-purple-200 text-purple-800 px-2 py-1 m-1 rounded-lg text-sm font-medium">${s.trim()}</span>`
+            ).join(" ");
+
+            const googleLink = `https://www.google.com/search?q=${encodeURIComponent(r.company + " " + r.internship_title)}`;
+
+            div.innerHTML = `
+              <div class="flex justify-between items-start">
+                <div>
+                  <h3 class="font-bold text-lg">${r.internship_title}</h3>
+                  <p class="text-gray-700"><strong>Company:</strong> ${r.company}</p>
+                  <p class="text-gray-700">Location: ${r.location} | Field: ${r.field}</p>
+                </div>
+                <button class="save-btn px-3 py-1 bg-yellow-400 rounded-lg text-sm font-semibold hover:bg-yellow-500 transition">
+                  ${savedInternships.find(s => `${s.company}-${s.internship_title}-${s.location}` === key) ? "Saved" : "Save"}
+                </button>
+              </div>
+              <div class="mt-2">Skills Required: ${skillsHTML}</div>
+              <div class="mt-3 flex gap-4">
+                <a href="${googleLink}" target="_blank" class="text-blue-500 hover:underline">🔍 Search on Google</a>
+              </div>
+            `;
+
+            const saveBtn = div.querySelector(".save-btn");
+            saveBtn.addEventListener("click", () => {
+              savedInternships = JSON.parse(localStorage.getItem("savedInternships") || "[]");
+              const exists = savedInternships.find(s => `${s.company}-${s.internship_title}-${s.location}` === key);
+              if (exists) {
+                savedInternships = savedInternships.filter(s => `${s.company}-${s.internship_title}-${s.location}` !== key);
+                saveBtn.innerText = "Save";
+                saveBtn.classList.remove("bg-red-500");
+                saveBtn.classList.add("bg-yellow-400");
+              } else {
+                savedInternships.push(r);
+                saveBtn.innerText = "Saved";
+                saveBtn.classList.remove("bg-yellow-400");
+                saveBtn.classList.add("bg-red-500");
+              }
+              localStorage.setItem("savedInternships", JSON.stringify(savedInternships));
+              if (!savedContainer.classList.contains("hidden")) renderSavedInternships();
+            });
+
+            container.appendChild(div);
+          }
+        });
+      })
+      .catch(err => {
+        console.error('Fetch error:', err);
+        container.innerHTML = `
+          <div class='text-center'>
+            <h2 class='text-white text-xl mb-4'>Error fetching recommendations</h2>
+            <p class='text-gray-300 mb-4'>Backend server might not be running or there's a connection issue.</p>
+            <p class='text-gray-400 text-sm'>Error: ${err.message}</p>
+            <div class='mt-6'>
+              <button onclick='window.location.reload()' class='px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition mr-4'>
+                Try Again
+              </button>
+              <a href='form.html' class='px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition'>
+                Back to Form
+              </a>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // --- Toggle saved internships box ---
+    toggleSavedBtn.addEventListener("click", () => {
+      if (savedContainer.classList.contains("hidden")) {
+        savedContainer.classList.remove("hidden");
+        renderSavedInternships();
+      } else {
+        savedContainer.classList.add("hidden");
+      }
+    });
+
+    // --- Render saved internships ---
+    function renderSavedInternships() {
+      savedContainer.innerHTML = "";
+      const savedInternships = JSON.parse(localStorage.getItem("savedInternships") || "[]");
+
+      if (savedInternships.length === 0) {
+        savedContainer.innerHTML = "<p class='text-white text-lg'>No internships saved yet.</p>";
+        return;
+      }
+
+      savedInternships.forEach(r => {
+        const div = document.createElement("div");
+        div.className = "bg-white rounded-xl shadow-lg p-4 mb-3";
+
+        const skillsHTML = (r.skills || "N/A").split(",").map(s =>
+          `<span class="inline-block bg-purple-200 text-purple-800 px-2 py-1 m-1 rounded-lg text-sm font-medium">${s.trim()}</span>`
+        ).join(" ");
+
+        div.innerHTML = `
+          <h3 class="font-bold text-lg">${r.internship_title}</h3>
+          <p class="text-gray-700"><strong>Company:</strong> ${r.company}</p>
+          <p class="text-gray-700">Location: ${r.location} | Field: ${r.field}</p>
+          <div class="mt-2">Skills Required: ${skillsHTML}</div>
+        `;
+        savedContainer.appendChild(div);
+      });
+    }
+
+    // Check if user has uploaded a resume for dashboard access
+    function checkDashboardAccess() {
+      const studentEmail = localStorage.getItem("studentEmail");
+      const resumeData = JSON.parse(localStorage.getItem("resumeData") || "{}");
+      
+      if (resumeData[studentEmail]) {
+        window.location.href = "dashboard.html";
+      } else {
+        alert("Please upload your resume in the form to access the personalized dashboard!");
+        window.location.href = "form.html";
+      }
+    }
+  </script>
+</body>
+</html>

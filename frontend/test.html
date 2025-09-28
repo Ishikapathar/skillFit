@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>API Test Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8">API Test Dashboard</h1>
+    
+    <!-- Test Buttons -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+      <button onclick="testRecommendations()" class="px-6 py-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+        🔍 Test Recommendations API
+      </button>
+      <button onclick="testDashboard()" class="px-6 py-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition">
+        📊 Test Dashboard API
+      </button>
+    </div>
+    
+    <!-- Results -->
+    <div id="results" class="bg-white rounded-lg shadow p-6 min-h-96">
+      <h2 class="text-xl font-bold mb-4">Test Results</h2>
+      <div id="output" class="text-gray-600">Click a button above to test the APIs</div>
+    </div>
+  </div>
+
+  <script>
+    async function testRecommendations() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="text-blue-500">Testing Recommendations API...</div>';
+      
+      try {
+        const response = await fetch('http://127.0.0.1:8000/get_recommendations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: "Test User",
+            course: "btech_cs",
+            skills: ["Python", "JavaScript", "React"],
+            locations: ["Mumbai", "Delhi"],
+            field: "Software Development",
+            top_n: 5
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          const recs = data.recommendations || [];
+          output.innerHTML = `
+            <div class="text-green-600 font-bold">✅ Recommendations API Working!</div>
+            <div class="mt-4">
+              <p><strong>Status:</strong> ${response.status}</p>
+              <p><strong>Recommendations found:</strong> ${recs.length}</p>
+              <div class="mt-4">
+                <h3 class="font-bold">Sample recommendations:</h3>
+                ${recs.slice(0, 3).map(r => `
+                  <div class="border rounded p-3 mt-2">
+                    <p><strong>Title:</strong> ${r.internship_title}</p>
+                    <p><strong>Company:</strong> ${r.company}</p>
+                    <p><strong>Location:</strong> ${r.location}</p>
+                    <p><strong>Field:</strong> ${r.field}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          output.innerHTML = `<div class="text-red-600">❌ API Error: ${response.status} - ${data.message || 'Unknown error'}</div>`;
+        }
+      } catch (error) {
+        output.innerHTML = `<div class="text-red-600">❌ Connection Error: ${error.message}</div>`;
+      }
+    }
+
+    async function testDashboard() {
+      const output = document.getElementById('output');
+      output.innerHTML = '<div class="text-green-500">Testing Dashboard API...</div>';
+      
+      try {
+        const response = await fetch('http://127.0.0.1:8000/get_dashboard_data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            student_email: "test@example.com"
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+          const profile = data.dashboard_data.profile_summary || {};
+          const skills = data.dashboard_data.skills_analysis || {};
+          const careers = data.dashboard_data.career_recommendations || [];
+          
+          output.innerHTML = `
+            <div class="text-green-600 font-bold">✅ Dashboard API Working!</div>
+            <div class="mt-4 space-y-4">
+              <div>
+                <h3 class="font-bold">Profile Summary:</h3>
+                <p>Total Skills: ${profile.total_skills || 'N/A'}</p>
+                <p>Experience Level: ${profile.experience_level || 'N/A'}</p>
+                <p>Resume Score: ${profile.resume_score || 'N/A'}/100</p>
+              </div>
+              
+              <div>
+                <h3 class="font-bold">Skills Categories:</h3>
+                <p>Categories: ${Object.keys(skills.categories || {}).join(', ')}</p>
+                <p>Suggested Skills: ${(skills.suggested_skills || []).slice(0, 3).join(', ')}</p>
+              </div>
+              
+              <div>
+                <h3 class="font-bold">Career Recommendations:</h3>
+                ${careers.slice(0, 2).map(c => `
+                  <div class="border rounded p-2 mt-2">
+                    <p><strong>${c.title}</strong> - ${c.match_percentage}% match</p>
+                    <p class="text-sm text-gray-600">${c.description}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+        } else {
+          output.innerHTML = `<div class="text-red-600">❌ API Error: ${response.status} - ${data.message || 'Unknown error'}</div>`;
+        }
+      } catch (error) {
+        output.innerHTML = `<div class="text-red-600">❌ Connection Error: ${error.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>

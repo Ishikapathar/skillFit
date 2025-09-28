@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Personal Dashboard - AI Resume Analysis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .gradient-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.9) 100%);
+      backdrop-filter: blur(10px);
+    }
+    .skill-badge {
+      background: linear-gradient(45deg, #4F46E5, #7C3AED);
+    }
+    .project-card {
+      transition: all 0.3s ease;
+      border-left: 4px solid transparent;
+    }
+    .project-card:hover {
+      transform: translateY(-2px);
+      border-left-color: #7C3AED;
+    }
+    .animate-float {
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+  </style>
+</head>
+<body class="min-h-screen py-8">
+
+  <div class="container mx-auto px-4 max-w-7xl">
+    
+    <!-- Header -->
+    <div class="gradient-card rounded-3xl shadow-2xl p-8 mb-8">
+      <div class="flex items-center justify-between">
+        <div>
+          <h1 class="text-4xl font-bold text-gray-800 mb-2">
+            🎯 Personal Dashboard
+          </h1>
+          <p class="text-gray-600 text-lg">Career Insights Based on Your Profile</p>
+          <div id="data-source-info" class="text-sm text-blue-600 mt-2"></div>
+        </div>
+        <div class="animate-float">
+          <div class="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+            <span class="text-3xl">🚀</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="mb-8">
+      <nav class="flex space-x-4">
+        <button onclick="showTab('overview')" id="overview-tab" class="px-6 py-3 bg-purple-500 text-white rounded-lg font-medium transition hover:bg-purple-600">
+          📊 Overview
+        </button>
+        <button onclick="showTab('skills')" id="skills-tab" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium transition hover:bg-gray-300">
+          🛠️ Skills Analysis
+        </button>
+        <button onclick="showTab('projects')" id="projects-tab" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium transition hover:bg-gray-300">
+          💼 Projects
+        </button>
+        <button onclick="showTab('recommendations')" id="recommendations-tab" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium transition hover:bg-gray-300">
+          💡 Recommendations
+        </button>
+        <a href="form.html" class="px-6 py-3 bg-green-500 text-white rounded-lg font-medium transition hover:bg-green-600">
+          ← Back to Form
+        </a>
+      </nav>
+    </div>
+
+    <!-- Loading Screen -->
+    <div id="loading" class="text-center py-20">
+      <div class="gradient-card rounded-3xl shadow-2xl p-12">
+        <div class="animate-spin w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full mx-auto mb-4"></div>
+        <h2 class="text-2xl font-bold text-gray-700 mb-2">Analyzing Your Resume...</h2>
+        <p class="text-gray-600">Our AI is extracting insights from your resume</p>
+      </div>
+    </div>
+
+    <!-- Overview Tab -->
+    <div id="overview-content" class="tab-content hidden">
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Profile Summary -->
+        <div class="gradient-card rounded-2xl shadow-xl p-6">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            👤 Profile Summary
+          </h3>
+          <div id="profile-info">
+            <div class="space-y-3">
+              <div class="flex justify-between">
+                <span class="text-gray-600">Name:</span>
+                <span id="user-name" class="font-medium">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Total Skills:</span>
+                <span id="total-skills" class="font-medium text-purple-600">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Projects:</span>
+                <span id="total-projects" class="font-medium text-blue-600">-</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-gray-600">Experience Level:</span>
+                <span id="experience-level" class="font-medium text-green-600">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Resume Strength -->
+        <div class="gradient-card rounded-2xl shadow-xl p-6">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            💪 Resume Strength
+          </h3>
+          <div class="space-y-4">
+            <div>
+              <div class="flex justify-between mb-1">
+                <span class="text-sm text-gray-600">Overall Score</span>
+                <span id="overall-score" class="text-sm font-medium">-/100</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div id="overall-progress" class="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full" style="width: 0%"></div>
+              </div>
+            </div>
+            <div id="strength-indicators"></div>
+          </div>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="gradient-card rounded-2xl shadow-xl p-6">
+          <h3 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            📈 Quick Stats
+          </h3>
+          <div class="space-y-4">
+            <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+              <span class="text-blue-700">🔧 Technical Skills</span>
+              <span id="tech-skills-count" class="font-bold text-blue-800">-</span>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+              <span class="text-green-700">💼 Professional Experience</span>
+              <span id="experience-months" class="font-bold text-green-800">- months</span>
+            </div>
+            <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+              <span class="text-purple-700">🎓 Education Level</span>
+              <span id="education-level" class="font-bold text-purple-800">-</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills Chart -->
+      <div class="gradient-card rounded-2xl shadow-xl p-8 mb-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">🎯 Skills Distribution</h3>
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <canvas id="skillsChart" width="400" height="400"></canvas>
+          </div>
+          <div id="skills-breakdown" class="space-y-4"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Skills Analysis Tab -->
+    <div id="skills-content" class="tab-content hidden">
+      <div class="gradient-card rounded-2xl shadow-xl p-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">🛠️ Detailed Skills Analysis</h3>
+        
+        <div class="grid md:grid-cols-2 gap-8">
+          <div>
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">🔥 Top Skills</h4>
+            <div id="top-skills-list" class="space-y-3"></div>
+          </div>
+          
+          <div>
+            <h4 class="text-lg font-semibold text-gray-700 mb-4">📚 Suggested Skills to Learn</h4>
+            <div id="suggested-skills" class="space-y-3"></div>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <h4 class="text-lg font-semibold text-gray-700 mb-4">📊 Skills Gap Analysis</h4>
+          <canvas id="skillsGapChart" width="800" height="400"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects Tab -->
+    <div id="projects-content" class="tab-content hidden">
+      <div class="gradient-card rounded-2xl shadow-xl p-8">
+        <h3 class="text-2xl font-bold text-gray-800 mb-6">💼 Project Portfolio Analysis</h3>
+        <div id="projects-list" class="space-y-6"></div>
+      </div>
+    </div>
+
+    <!-- Recommendations Tab -->
+    <div id="recommendations-content" class="tab-content hidden">
+      <div class="space-y-6">
+        
+        <!-- Career Path Recommendations -->
+        <div class="gradient-card rounded-2xl shadow-xl p-8">
+          <h3 class="text-2xl font-bold text-gray-800 mb-6">🎯 Personalized Career Recommendations</h3>
+          <div id="career-recommendations" class="grid md:grid-cols-2 gap-6"></div>
+        </div>
+
+        <!-- Learning Path -->
+        <div class="gradient-card rounded-2xl shadow-xl p-8">
+          <h3 class="text-2xl font-bold text-gray-800 mb-6">📚 Recommended Learning Path</h3>
+          <div id="learning-path" class="space-y-4"></div>
+        </div>
+
+        <!-- Action Items -->
+        <div class="gradient-card rounded-2xl shadow-xl p-8">
+          <h3 class="text-2xl font-bold text-gray-800 mb-6">✅ Action Items</h3>
+          <div id="action-items" class="space-y-3"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Global variables
+    let resumeData = null;
+    let analysisData = null;
+    let skillsChart = null;
+    let skillsGapChart = null;
+
+    // Tab switching
+    function showTab(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+      
+      // Reset all tab buttons
+      document.querySelectorAll('nav button').forEach(btn => {
+        btn.classList.remove('bg-purple-500', 'text-white');
+        btn.classList.add('bg-gray-200', 'text-gray-700');
+      });
+      
+      // Show selected tab and update button
+      document.getElementById(tabName + '-content').classList.remove('hidden');
+      document.getElementById(tabName + '-tab').classList.add('bg-purple-500', 'text-white');
+      document.getElementById(tabName + '-tab').classList.remove('bg-gray-200', 'text-gray-700');
+    }
+
+    // Initialize dashboard
+    async function initializeDashboard() {
+      try {
+        // Get student email and resume data
+        const studentEmail = localStorage.getItem("studentEmail");
+        const resumeStorage = JSON.parse(localStorage.getItem("resumeData") || "{}");
+        resumeData = resumeStorage[studentEmail];
+
+        if (!resumeData) {
+          console.log("No resume found, using form data only");
+        }
+
+        // Load dashboard data immediately - no artificial delay
+        loadDashboardData();
+      
+      async function loadDashboardData() {
+        try {
+          console.log('Loading dashboard data for:', studentEmail);
+          
+          // If we have resume data, process it first
+          if (resumeData && resumeData.data) {
+            console.log('Processing uploaded resume...');
+            try {
+              const resumeResponse = await fetch('http://127.0.0.1:8000/upload_resume', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  student_email: studentEmail,
+                  resume_data: resumeData.data,
+                  filename: resumeData.name,
+                  file_type: resumeData.type
+                })
+              });
+              
+              if (resumeResponse.ok) {
+                const resumeResult = await resumeResponse.json();
+                console.log('Resume processed:', resumeResult);
+              }
+            } catch (resumeError) {
+              console.error('Resume processing failed:', resumeError);
+            }
+          }
+          
+          // Now get dashboard data from backend
+          const response = await fetch('http://127.0.0.1:8000/get_dashboard_data', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              student_email: studentEmail
+            })
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('Backend response:', result);
+            
+            if (result.success && result.dashboard_data) {
+              analysisData = result.dashboard_data;
+              analysisData.source = 'backend';
+              console.log('Using backend analysis data');
+            } else {
+              throw new Error('Backend did not return valid data');
+            }
+          } else {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+        } catch (error) {
+          console.error('Backend error, using resume-based analysis:', error);
+          
+          // Generate analysis based on actual resume data and form data
+          analysisData = generateResumeBasedAnalysis(resumeData, studentEmail);
+          analysisData.source = 'form_data';
+        }
+        
+        // Update data source info
+        const dataSourceInfo = document.getElementById('data-source-info');
+        if (analysisData.source === 'backend') {
+          dataSourceInfo.textContent = '📊 Analysis powered by AI resume processing';
+        } else {
+          dataSourceInfo.textContent = '📝 Analysis based on your form data and skills';
+        }
+        
+        renderDashboard();
+        document.getElementById('loading').style.display = 'none';
+        showTab('overview');
+      }
+
+      } catch (error) {
+        console.error("Error initializing dashboard:", error);
+        document.getElementById('loading').innerHTML = `
+          <div class="gradient-card rounded-3xl shadow-2xl p-12">
+            <div class="text-red-500 text-6xl mb-4">❌</div>
+            <h2 class="text-2xl font-bold text-gray-700 mb-2">Error Loading Dashboard</h2>
+            <p class="text-gray-600">Please make sure you have uploaded a resume.</p>
+            <a href="form.html" class="inline-block mt-4 px-6 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition">
+              Go Back to Form
+            </a>
+          </div>
+        `;
+      }
+    }
+
+    // Generate analysis based on actual form data and resume
+    function generateResumeBasedAnalysis(resume, studentEmail) {
+      // Get actual student data from form
+      const studentData = JSON.parse(localStorage.getItem("studentData") || "{}");
+      const users = JSON.parse(localStorage.getItem("users") || "{}");
+      const user = users[studentEmail] || {};
+      
+      // Use real form data
+      const userSkills = studentData.skills || [];
+      const userLocations = studentData.locations || [];
+      const userField = studentData.field || "";
+      const userName = studentData.name || user.email || "Student";
+      const userCourse = studentData.course || "";
+      
+      console.log('Generating analysis for:', { userName, userSkills, userField, userCourse });
+      
+      const analysis = {
+        profile_summary: {
+          name: userName,
+          total_skills: userSkills.length,
+          total_projects: Math.min(userSkills.length, 5), // Estimate based on skills
+          experience_level: userSkills.length > 10 ? "Advanced" : userSkills.length > 5 ? "Intermediate" : "Beginner",
+          experience_months: userSkills.length * 3, // Rough estimate
+          education_level: getCourseLevel(userCourse),
+          resume_score: Math.min(85, 60 + userSkills.length * 2) // Score based on skills count
+        },
+        
+        skills_analysis: {
+          categories: categorizeSkills(userSkills),
+          top_skills: userSkills.slice(0, 10),
+          suggested_skills: generateSuggestedSkills(userSkills, userField)
+        },
+        
+        resume_improvements: [
+          {
+            category: "Technical Skills",
+            score: Math.min(95, 70 + userSkills.length * 3),
+            suggestions: getSkillSuggestions(userSkills.length)
+          },
+          {
+            category: "Project Experience", 
+            score: Math.min(90, 50 + userSkills.length * 4),
+            suggestions: getProjectSuggestions()
+          },
+          {
+            category: "Education Background",
+            score: userCourse ? 85 : 60,
+            suggestions: userCourse ? ["Highlight relevant coursework"] : ["Add education details"]
+          }
+        ],
+
+        projects: generateProjectsFromSkills(userSkills),
+        
+        career_recommendations: generateCareerRecommendations(userSkills, userField),
+        
+        learning_path: generateLearningPath(userSkills, userField),
+        
+        action_items: generateActionItems(userSkills, userField, userName)
+      };
+
+      return analysis;
+    }
+    
+    // Helper functions for real data analysis
+    function getCourseLevel(course) {
+      if (!course) return "Not specified";
+      if (course.includes('mtech') || course.includes('msc') || course.includes('mca')) return "Master's";
+      if (course.includes('btech') || course.includes('bsc') || course.includes('bca')) return "Bachelor's";
+      return "Diploma/Certificate";
+    }
+    
+    function categorizeSkills(skills) {
+      const categories = {
+        "Programming Languages": [],
+        "Web Technologies": [],
+        "Databases": [],
+        "Tools & Frameworks": [],
+        "Other Skills": []
+      };
+      
+      const programmingLanguages = ['python', 'java', 'javascript', 'c++', 'c#', 'php', 'ruby', 'go', 'swift', 'kotlin', 'typescript'];
+      const webTech = ['react', 'angular', 'vue', 'html', 'css', 'nodejs', 'express', 'bootstrap', 'jquery'];
+      const databases = ['mysql', 'mongodb', 'postgresql', 'sqlite', 'redis', 'oracle', 'firebase'];
+      const tools = ['git', 'docker', 'aws', 'azure', 'kubernetes', 'jenkins', 'linux', 'windows', 'figma', 'photoshop'];
+      
+      skills.forEach(skill => {
+        const lowerSkill = skill.toLowerCase();
+        if (programmingLanguages.some(lang => lowerSkill.includes(lang))) {
+          categories["Programming Languages"].push(skill);
+        } else if (webTech.some(tech => lowerSkill.includes(tech))) {
+          categories["Web Technologies"].push(skill);
+        } else if (databases.some(db => lowerSkill.includes(db))) {
+          categories["Databases"].push(skill);
+        } else if (tools.some(tool => lowerSkill.includes(tool))) {
+          categories["Tools & Frameworks"].push(skill);
+        } else {
+          categories["Other Skills"].push(skill);
+        }
+      });
+      
+      // Remove empty categories
+      Object.keys(categories).forEach(key => {
+        if (categories[key].length === 0) delete categories[key];
+      });
+      
+      return categories;
+    }
+    
+    function generateSuggestedSkills(userSkills, userField) {
+      const suggestions = [];
+      const lowerSkills = userSkills.map(s => s.toLowerCase());
+      
+      // Suggest based on field
+      if (userField.toLowerCase().includes('web') || userField.toLowerCase().includes('frontend')) {
+        if (!lowerSkills.includes('typescript')) suggestions.push('TypeScript');
+        if (!lowerSkills.includes('redux')) suggestions.push('Redux');
+        if (!lowerSkills.includes('tailwind')) suggestions.push('Tailwind CSS');
+      }
+      
+      if (userField.toLowerCase().includes('backend') || userField.toLowerCase().includes('full')) {
+        if (!lowerSkills.includes('docker')) suggestions.push('Docker');
+        if (!lowerSkills.includes('aws')) suggestions.push('AWS');
+        if (!lowerSkills.includes('microservices')) suggestions.push('Microservices');
+      }
+      
+      if (userField.toLowerCase().includes('data')) {
+        if (!lowerSkills.includes('sql')) suggestions.push('SQL');
+        if (!lowerSkills.includes('pandas')) suggestions.push('Pandas');
+        if (!lowerSkills.includes('tableau')) suggestions.push('Tableau');
+      }
+      
+      // General suggestions
+      if (!lowerSkills.includes('git')) suggestions.push('Git');
+      if (!lowerSkills.includes('testing')) suggestions.push('Unit Testing');
+      
+      return suggestions.slice(0, 5);
+    }
+    
+    function generateProjectsFromSkills(skills) {
+      const projects = [];
+      
+      if (skills.some(s => s.toLowerCase().includes('react') || s.toLowerCase().includes('web'))) {
+        projects.push({
+          name: "Web Application Project",
+          description: "Built using modern web technologies from your skill set",
+          technologies: skills.filter(s => ['react', 'javascript', 'html', 'css', 'nodejs'].some(tech => 
+            s.toLowerCase().includes(tech))).slice(0, 4),
+          impact: "Demonstrates frontend development capabilities"
+        });
+      }
+      
+      if (skills.some(s => s.toLowerCase().includes('python') || s.toLowerCase().includes('data'))) {
+        projects.push({
+          name: "Data Analysis Project", 
+          description: "Data processing and analysis using your technical skills",
+          technologies: skills.filter(s => ['python', 'pandas', 'sql', 'excel'].some(tech => 
+            s.toLowerCase().includes(tech))).slice(0, 3),
+          impact: "Shows analytical and problem-solving skills"
+        });
+      }
+      
+      if (projects.length === 0) {
+        projects.push({
+          name: "Technical Skills Demonstration",
+          description: "Projects showcasing your technical abilities",
+          technologies: skills.slice(0, 4),
+          impact: "Demonstrates practical application of learned skills"
+        });
+      }
+      
+      return projects;
+    }
+    
+    function generateCareerRecommendations(skills, field) {
+      const recommendations = [];
+      const lowerSkills = skills.map(s => s.toLowerCase());
+      
+      // Web Development path
+      const webScore = calculateFieldMatch(lowerSkills, ['javascript', 'react', 'html', 'css', 'web']);
+      if (webScore > 0) {
+        recommendations.push({
+          title: "Frontend Developer",
+          match_percentage: Math.min(95, 60 + webScore * 10),
+          description: "Your web development skills align well with frontend development roles",
+          salary_range: "$60,000 - $100,000",
+          growth_potential: "High"
+        });
+      }
+      
+      // Backend Development
+      const backendScore = calculateFieldMatch(lowerSkills, ['python', 'java', 'nodejs', 'database', 'api']);
+      if (backendScore > 0) {
+        recommendations.push({
+          title: "Backend Developer",
+          match_percentage: Math.min(95, 60 + backendScore * 10),
+          description: "Your programming and database skills suit backend development",
+          salary_range: "$65,000 - $110,000", 
+          growth_potential: "Very High"
+        });
+      }
+      
+      // Data Analysis
+      const dataScore = calculateFieldMatch(lowerSkills, ['python', 'sql', 'data', 'analysis', 'excel']);
+      if (dataScore > 0) {
+        recommendations.push({
+          title: "Data Analyst",
+          match_percentage: Math.min(95, 55 + dataScore * 12),
+          description: "Your analytical skills and tools knowledge fit data roles",
+          salary_range: "$55,000 - $95,000",
+          growth_potential: "High"
+        });
+      }
+      
+      // Default recommendation
+      if (recommendations.length === 0) {
+        recommendations.push({
+          title: "Software Developer",
+          match_percentage: 70,
+          description: "Your technical skills provide a good foundation for software development",
+          salary_range: "$50,000 - $90,000",
+          growth_potential: "High"
+        });
+      }
+      
+      return recommendations.slice(0, 3);
+    }
+    
+    function calculateFieldMatch(skillsLower, keywords) {
+      return skillsLower.filter(skill => 
+        keywords.some(keyword => skill.includes(keyword))
+      ).length;
+    }
+    
+    function generateLearningPath(skills, field) {
+      const path = [];
+      const lowerSkills = skills.map(s => s.toLowerCase());
+      
+      // High priority skills based on current skills
+      if (lowerSkills.includes('javascript') && !lowerSkills.includes('typescript')) {
+        path.push({ skill: "TypeScript", priority: "High", estimated_time: "2-3 weeks" });
+      }
+      
+      if ((lowerSkills.includes('react') || lowerSkills.includes('web')) && !lowerSkills.includes('testing')) {
+        path.push({ skill: "Testing (Jest/React Testing Library)", priority: "High", estimated_time: "3 weeks" });
+      }
+      
+      if (!lowerSkills.includes('git')) {
+        path.push({ skill: "Git & Version Control", priority: "High", estimated_time: "1 week" });
+      }
+      
+      // Medium priority
+      if (!lowerSkills.includes('docker')) {
+        path.push({ skill: "Docker & Containerization", priority: "Medium", estimated_time: "2-3 weeks" });
+      }
+      
+      if (!lowerSkills.includes('cloud') && !lowerSkills.includes('aws')) {
+        path.push({ skill: "Cloud Computing (AWS/Azure)", priority: "Medium", estimated_time: "4-6 weeks" });
+      }
+      
+      return path.slice(0, 5);
+    }
+    
+    function generateActionItems(skills, field, name) {
+      const items = [];
+      
+      items.push(`Create a portfolio website to showcase your ${skills.length} skills`);
+      items.push("Build 2-3 projects that demonstrate your technical abilities");
+      items.push("Update your LinkedIn profile with your current skills");
+      
+      if (skills.length < 5) {
+        items.push("Learn 2-3 additional technical skills to strengthen your profile");
+      }
+      
+      if (field) {
+        items.push(`Network with professionals in ${field} through LinkedIn and events`);
+        items.push(`Look for internships specifically in ${field}`);
+      }
+      
+      items.push("Practice coding challenges on platforms like LeetCode or HackerRank");
+      items.push("Contribute to open-source projects on GitHub");
+      
+      return items.slice(0, 6);
+    }
+    
+    function getSkillSuggestions(skillCount) {
+      if (skillCount < 5) {
+        return ["Add more technical skills to your profile", "Focus on learning popular technologies in your field"];
+      } else if (skillCount < 10) {
+        return ["Organize skills by categories", "Add proficiency levels for each skill"];
+      } else {
+        return ["Highlight your top 5 most relevant skills", "Add years of experience for key skills"];
+      }
+    }
+    
+    function getProjectSuggestions() {
+      return [
+        "Add quantifiable results to your projects",
+        "Include live demo links or GitHub repositories", 
+        "Describe the problem each project solves"
+      ];
+    }
+
+    // Render dashboard content
+    function renderDashboard() {
+      renderOverview();
+      renderSkillsAnalysis();
+      renderProjects();
+      renderRecommendations();
+    }
+
+    // Render overview tab
+    function renderOverview() {
+      const profile = analysisData.profile_summary || analysisData.profile;
+      const strength = analysisData.resume_improvements || analysisData.resumeStrength;
+
+      // Profile info
+      document.getElementById('user-name').textContent = profile.name || "Student";
+      document.getElementById('total-skills').textContent = profile.total_skills || profile.totalSkills || 0;
+      document.getElementById('total-projects').textContent = profile.total_projects || profile.totalProjects || 0;
+      document.getElementById('experience-level').textContent = profile.experience_level || profile.experienceLevel || "Beginner";
+      
+      const skillsData = analysisData.skills_analysis || analysisData.skills;
+      const categories = skillsData.categories || skillsData.categories || {};
+      document.getElementById('tech-skills-count').textContent = Object.values(categories).flat().length;
+      document.getElementById('experience-months').textContent = (profile.experience_months || profile.experienceMonths || 6) + "";
+      document.getElementById('education-level').textContent = profile.education_level || profile.educationLevel || "Bachelor's";
+
+      // Resume strength
+      const overallScore = profile.resume_score || strength.overallScore || 75;
+      document.getElementById('overall-score').textContent = overallScore + "/100";
+      document.getElementById('overall-progress').style.width = overallScore + "%";
+
+      const strengthContainer = document.getElementById('strength-indicators');
+      const indicators = strength.indicators || strength || [
+        {name: "Technical Skills", score: 85, status: "excellent"},
+        {name: "Projects", score: 75, status: "good"},
+        {name: "Experience", score: 65, status: "needs_improvement"}
+      ];
+      
+      strengthContainer.innerHTML = indicators.map(indicator => {
+        const score = indicator.score || Math.floor(Math.random() * 30) + 70;
+        const status = score >= 85 ? 'excellent' : score >= 70 ? 'good' : 'needs_improvement';
+        const colorClass = status === 'excellent' ? 'text-green-600' : 
+                          status === 'good' ? 'text-yellow-600' : 'text-red-600';
+        const emoji = status === 'excellent' ? '🟢' : 
+                     status === 'good' ? '🟡' : '🔴';
+        return `
+          <div class="flex justify-between items-center">
+            <span class="text-sm ${colorClass}">${emoji} ${indicator.category || indicator.name}</span>
+            <span class="text-sm font-medium">${score}%</span>
+          </div>
+        `;
+      }).join('');
+
+      // Skills chart
+      renderSkillsChart();
+    }
+
+    // Render skills chart
+    function renderSkillsChart() {
+      const ctx = document.getElementById('skillsChart').getContext('2d');
+      const skillsData = analysisData.skills_analysis || analysisData.skills;
+      const categories = skillsData.categories || {};
+      
+      // Handle case where no skills are categorized
+      if (Object.keys(categories).length === 0) {
+        const skillsContainer = document.getElementById('skills-breakdown');
+        skillsContainer.innerHTML = '<div class="text-center text-gray-500 py-8">No skills found. Please add skills in your profile form.</div>';
+        return;
+      }
+      
+      if (skillsChart) skillsChart.destroy();
+      
+      skillsChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: Object.keys(categories),
+          datasets: [{
+            data: Object.values(categories).map(skills => skills.length),
+            backgroundColor: [
+              '#8B5CF6', '#06B6D4', '#10B981', '#F59E0B', '#EF4444'
+            ],
+            borderWidth: 2,
+            borderColor: '#fff'
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              position: 'bottom',
+            }
+          }
+        }
+      });
+
+      // Skills breakdown
+      const breakdownContainer = document.getElementById('skills-breakdown');
+      breakdownContainer.innerHTML = Object.entries(categories).map(([category, skills]) => `
+        <div class="p-4 border rounded-lg">
+          <h5 class="font-semibold text-gray-800 mb-2">${category}</h5>
+          <div class="flex flex-wrap gap-2">
+            ${skills.map(skill => `
+              <span class="skill-badge text-white px-3 py-1 rounded-full text-sm">${skill}</span>
+            `).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render skills analysis
+    function renderSkillsAnalysis() {
+      const topSkillsContainer = document.getElementById('top-skills-list');
+      const skillsData = analysisData.skills_analysis || analysisData.skills;
+      const allSkills = (skillsData.top_skills || Object.values(skillsData.categories || {}).flat()).slice(0, 10);
+      
+      topSkillsContainer.innerHTML = allSkills.map((skill, index) => `
+        <div class="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg">
+          <span class="font-medium text-gray-800">${index + 1}. ${skill}</span>
+          <div class="w-24 bg-gray-200 rounded-full h-2">
+            <div class="bg-gradient-to-r from-purple-500 to-blue-500 h-2 rounded-full" 
+                 style="width: ${100 - index * 8}%"></div>
+          </div>
+        </div>
+      `).join('');
+
+      const suggestedContainer = document.getElementById('suggested-skills');
+      const suggestedSkills = skillsData.suggested_skills || skillsData.suggested || [];
+      suggestedContainer.innerHTML = suggestedSkills.map(skill => `
+        <div class="p-3 border-2 border-dashed border-purple-300 rounded-lg hover:bg-purple-50 transition">
+          <span class="text-purple-700 font-medium">📚 ${skill}</span>
+          <p class="text-sm text-gray-600 mt-1">Recommended based on your current skill set</p>
+        </div>
+      `).join('');
+    }
+
+    // Render projects
+    function renderProjects() {
+      const projectsContainer = document.getElementById('projects-list');
+      
+      if (analysisData.projects.length === 0) {
+        projectsContainer.innerHTML = `
+          <div class="text-center py-12">
+            <div class="text-6xl mb-4">💼</div>
+            <h4 class="text-xl font-semibold text-gray-700 mb-2">No Projects Found</h4>
+            <p class="text-gray-600">Add project details to your resume for better analysis.</p>
+          </div>
+        `;
+        return;
+      }
+
+      projectsContainer.innerHTML = analysisData.projects.map((project, index) => `
+        <div class="project-card bg-white rounded-lg shadow-lg p-6 border">
+          <div class="flex items-start justify-between mb-4">
+            <h4 class="text-xl font-bold text-gray-800">${project.name}</h4>
+            <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+              Project ${index + 1}
+            </span>
+          </div>
+          
+          <p class="text-gray-600 mb-4">${project.description}</p>
+          
+          <div class="mb-4">
+            <h5 class="font-semibold text-gray-700 mb-2">Technologies Used:</h5>
+            <div class="flex flex-wrap gap-2">
+              ${project.technologies.map(tech => `
+                <span class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">${tech}</span>
+              `).join('')}
+            </div>
+          </div>
+          
+          <div class="p-3 bg-green-50 rounded-lg">
+            <h5 class="font-semibold text-green-800 mb-1">Impact:</h5>
+            <p class="text-green-700">${project.impact}</p>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Render recommendations
+    function renderRecommendations() {
+      // Career recommendations
+      const careerContainer = document.getElementById('career-recommendations');
+      const careers = analysisData.career_recommendations || analysisData.careerRecommendations || [];
+      careerContainer.innerHTML = careers.map(career => `
+        <div class="bg-white rounded-lg shadow-lg p-6 border">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="text-lg font-bold text-gray-800">${career.title}</h4>
+            <span class="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-bold">
+              ${career.match_percentage || career.match || 85}% Match
+            </span>
+          </div>
+          
+          <p class="text-gray-600 mb-4">${career.description}</p>
+          
+          <div>
+            <h5 class="font-semibold text-gray-700 mb-2">Details:</h5>
+            <div class="text-sm text-gray-600 space-y-1">
+              <p><strong>Required Skills:</strong> ${(career.required_skills || career.actions || []).join(', ')}</p>
+              <p><strong>Salary Range:</strong> ${career.salary_range || 'Competitive'}</p>
+              <p><strong>Growth Potential:</strong> ${career.growth_potential || 'High'}</p>
+            </div>
+            </ul>
+          </div>
+        </div>
+      `).join('');
+
+      // Learning path
+      const learningContainer = document.getElementById('learning-path');
+      const learningPath = analysisData.learning_path || analysisData.learningPath || [];
+      learningContainer.innerHTML = learningPath.map((item, index) => `
+        <div class="flex items-center p-4 bg-white rounded-lg shadow border">
+          <div class="w-8 h-8 bg-purple-500 text-white rounded-full flex items-center justify-center text-sm font-bold mr-4">
+            ${index + 1}
+          </div>
+          <div class="flex-1">
+            <h5 class="font-semibold text-gray-800">${item.skill}</h5>
+            <p class="text-sm text-gray-600">Estimated time: ${item.estimated_time || item.timeEstimate || '2-3 weeks'}</p>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-medium ${
+            item.priority === 'High' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+          }">
+            ${item.priority} Priority
+          </span>
+        </div>
+      `).join('');
+
+      // Action items
+      const actionContainer = document.getElementById('action-items');
+      const actionItems = analysisData.action_items || analysisData.actionItems || [];
+      actionContainer.innerHTML = actionItems.map((item, index) => `
+        <div class="flex items-center p-4 bg-white rounded-lg shadow border hover:shadow-md transition">
+          <input type="checkbox" class="mr-4 w-5 h-5 text-purple-500 rounded">
+          <span class="text-gray-700">${item}</span>
+        </div>
+      `).join('');
+    }
+
+    // Initialize dashboard when page loads
+    window.addEventListener('load', initializeDashboard);
+  </script>
+</body>
+</html>

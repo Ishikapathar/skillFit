@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Student Login / Sign In</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center min-h-screen">
+
+  <div class="bg-white shadow-2xl rounded-2xl p-8 w-full max-w-md">
+    <h1 class="text-2xl font-bold text-center text-blue-600 mb-6">
+      Student Portal
+    </h1>
+
+    <!-- Toggle Buttons -->
+    <div class="flex justify-around mb-4">
+      <button id="signInBtn" class="px-4 py-2 rounded-lg hover:bg-green-600 transition">Sign In</button>
+      <button id="loginBtn" class="px-4 py-2 rounded-lg hover:bg-blue-600 transition">Login</button>
+    </div>
+
+    <!-- Form -->
+    <form id="authForm" class="space-y-4">
+      <div>
+        <label class="block text-gray-700 font-medium">Email</label>
+        <input type="email" id="email" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-400">
+      </div>
+
+      <div>
+        <label class="block text-gray-700 font-medium">Password</label>
+        <input type="password" id="password" required class="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-400">
+      </div>
+
+      <button type="submit" id="submitBtn" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 transition">
+        Login
+      </button>
+    </form>
+
+    <p id="message" class="text-center mt-2"></p>
+  </div>
+
+  <script>
+    const signInBtn = document.getElementById("signInBtn");
+    const loginBtn = document.getElementById("loginBtn");
+    const form = document.getElementById("authForm");
+    const message = document.getElementById("message");
+    const submitBtn = document.getElementById("submitBtn");
+
+    let mode = "login"; // default mode
+
+    function updateModeUI() {
+      if (mode === "signin") {
+        submitBtn.innerText = "Sign In";
+        signInBtn.className = "px-4 py-2 bg-green-500 text-white rounded-lg";
+        loginBtn.className = "px-4 py-2 rounded-lg hover:bg-blue-600 transition";
+        message.innerText = "";
+      } else {
+        submitBtn.innerText = "Login";
+        loginBtn.className = "px-4 py-2 bg-blue-500 text-white rounded-lg";
+        signInBtn.className = "px-4 py-2 rounded-lg hover:bg-green-600 transition";
+        message.innerText = "";
+      }
+    }
+
+    signInBtn.addEventListener("click", () => { mode = "signin"; updateModeUI(); });
+    loginBtn.addEventListener("click", () => { mode = "login"; updateModeUI(); });
+
+    updateModeUI();
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+
+      let users = JSON.parse(localStorage.getItem("users") || "{}");
+
+      if (mode === "signin") {
+        if (users[email]) {
+          message.style.color = "red";
+          message.innerText = "Email already exists. Please login.";
+        } else {
+          // Save new student and open form directly
+          users[email] = { password: password, email: email };
+          localStorage.setItem("users", JSON.stringify(users));
+          localStorage.setItem("studentEmail", email); // mark as logged in
+          message.style.color = "green";
+          message.innerText = "Sign In successful! Redirecting to form...";
+          setTimeout(() => { window.location.href = "form.html"; }, 1000);
+        }
+      } else { // login
+        if (!users[email]) {
+          message.style.color = "red";
+          message.innerText = "Email not registered. Please Sign In first.";
+        } else if (users[email].password !== password) {
+          message.style.color = "red";
+          message.innerText = "Wrong password. Try again.";
+        } else {
+          localStorage.setItem("studentEmail", email);
+          message.style.color = "green";
+          message.innerText = "Login successful! Redirecting...";
+          setTimeout(() => { window.location.href = "form.html"; }, 1000);
+        }
+      }
+    });
+  </script>
+</body>
+</html>
